@@ -1,5 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink"
     width='30px'
-    height='10px' fill-rule="nonzero" fill="purple">
-    <line x1="5" y1="5" x2="25" y2="5" stroke-linecap="round" stroke="purple" stroke-width="5" />
+    height='10px' 
+    fill-rule="nonzero"
+    >
+    <line x1="0" y1="5" x2="10" y2="5" stroke="green" stroke-width="5"/>
+    <line x1="10" y1="5" x2="20" y2="5" stroke="cyan" stroke-width="5"/>
+    <line x1="20" y1="5" x2="30" y2="5" stroke="yellow" stroke-width="5"/>
 </svg>

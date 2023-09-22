@@ -1,37 +1,31 @@
+document.addEventListener("keydown", keyDownHandler, false)
+document.addEventListener("keyup", keyUpHandler, false)
+document.addEventListener("mousemove", mouseMoveHandler, false)
+
 // board 
 let canvas;
 let canvasWidth = 300;
 let canvasHeight = 300;
 let ctx;
 // controler
-let controlerWidth = 80
+let controlerWidth = 50
 let controlerHeight = 15
 let controlerX = canvasWidth / 2 - controlerWidth / 2
 let controlerY = 7 * canvasHeight / 8
 let controlerImg
 
-let controler = {
-    x: controlerX,
-    y: controlerY,
-    width: controlerWidth,
-    height: controlerHeight
-}
+let controler = {}
 
 // ball
 let ballWidth = 10
 let ballHeight = 10
-let ballX = controlerX + controlerWidth / 3 
-let ballY = controlerY - controlerHeight 
+let ballX = controlerX + controlerWidth / 3
+let ballY = controlerY - controlerHeight
 let ballImg
 let ballVelocityX = 2
 let ballVelocityY = -2
 
-let ball = {
-    x: ballX,
-    y: ballY,
-    width: ballWidth,
-    height: ballHeight
-}
+let ball = {}
 let score = 0
 //bricks
 const brickRows = 3
@@ -42,31 +36,73 @@ let brickGap = 10
 let bricksX = 10
 let bricksY = 10
 let brickLeftCount = brickRows * brickColumns
+let brickImg
 const bricks = []
-for (let c = 0; c < brickColumns; c++) {
-    bricks[c] = []
-    for (let r = 0; r < brickRows; r++) {
-        bricks[c][r] = { x: 0, y: 0, status: 1 }
-    }
-}
+
 // keys
 let leftPressed = false
 let rightPressed = false
 
-document.addEventListener("keydown", keyDownHandler, false)
-document.addEventListener("keyup", keyUpHandler, false)
+
+
+function reset() {
+    // controler
+    controler = {
+        x: controlerX,
+        y: controlerY,
+        width: controlerWidth,
+        height: controlerHeight
+    }
+    controlerImg = new Image()
+    controlerImg.src = './controler.svg'
+
+    // ball
+    ballImg = new Image()
+    ballImg.src = './ball.svg'
+    ballVelocityX = 2 + score
+    ballVelocityY = -2 - score
+
+    ball = {
+        x: ballX,
+        y: ballY,
+        width: ballWidth,
+        height: ballHeight
+    }
+    //bricks
+    brickLeftCount = brickRows * brickColumns
+    brickImg = new Image()
+    brickImg.src = './brick.svg'
+
+    // keys
+    leftPressed = false
+    rightPressed = false
+
+    for (let c = 0; c < brickColumns; c++) {
+        bricks[c] = []
+        for (let r = 0; r < brickRows; r++) {
+            bricks[c][r] = { x: 0, y: 0, status: 1 }
+        }
+    }
+}
+
+
+
 
 function keyDownHandler(e) {
     if (e.key == "Left" || e.key == 'ArrowLeft') { leftPressed = true }
     else if (e.key == "Right" || e.key == 'ArrowRight') { rightPressed = true }
-    console.log(leftPressed)
 }
 function keyUpHandler(e) {
     if (e.key == "Left" || e.key == 'ArrowLeft') { leftPressed = false }
     else if (e.key == "Right" || e.key == 'ArrowRight') { rightPressed = false }
-    console.log(leftPressed)
+        
 }
-
+function mouseMoveHandler(e) {
+    let mousePosition = e.clientX
+    if (e.clientX > 0 && mousePosition < canvasWidth) {
+        controler.x = mousePosition - controler.width / 2
+    }
+}
 
 function drawBall() {
     ctx.beginPath()
@@ -102,10 +138,23 @@ function ballMovement() {
     ball.y += ballVelocityY
 }
 function collisionDetection() {
-    if (ball.x + ball.width > controler.x  && ball.x + ball.width < controler.x + controler.width && ball.y > controler.y &&  ball.y < controler.y + controler.height) {
-        ballVelocityY = -ballVelocityY;
+    //collision with pad
+    if (ball.y > controler.y && ball.y < controler.y + controler.height) {
+        if (ball.x + ball.width > controler.x && ball.x + ball.width < controler.x + controler.width / 3) {
+            ballVelocityX = -Math.abs(ballVelocityX) - .5;
+            ballVelocityY = -Math.abs(ballVelocityY + .2);
+        }
+        else if (ball.x + ball.width > controler.x + controler.width / 3 && ball.x + ball.width < controler.x + 2 * controler.width / 3) {
+            ballVelocityY = -Math.abs(ballVelocityY + .2);
+
+        }
+        else if (ball.x + ball.width > controler.x + 2 * controler.width / 3 && ball.x + ball.width < controler.x + controler.width) {
+            ballVelocityY = -Math.abs(ballVelocityY + .2);
+            ballVelocityX = Math.abs(ballVelocityX) + .5;
+        }
         return
     }
+    // colision with bricks
     for (let c = 0; c < brickColumns; c++) {
         for (let r = 0; r < brickRows; r++) {
             const b = bricks[c][r];
@@ -116,7 +165,6 @@ function collisionDetection() {
                     ballVelocityY = -ballVelocityY;
                     b.status = 0
                     brickLeftCount -= 1
-                    console.log(brickLeftCount)
                 }
             }
         }
@@ -125,13 +173,14 @@ function collisionDetection() {
 
 function gameOver() {
 
-    if(brickLeftCount === 0) alert("You win")
-    else {alert("You loose")}
+    if (brickLeftCount === 0) alert("You win")
+    else { alert("You loose") }
     ball = {
         x: ballX,
         y: ballY
     }
     ballVelocityY = Math.abs(ballVelocityY)
+    score++
     reset()
 }
 
@@ -157,19 +206,7 @@ window.onload = function () {
     canvas.width = canvasWidth
     canvas.height = canvasHeight
     ctx = canvas.getContext('2d')
-    
-    // draw ball
-    ballImg = new Image()
-    ballImg.src = './ball.svg'
-    ballImg.onload = function () {
-        ctx.drawImage(ballImg, ball.x, ball.y, ball.width, ball.height)
+    reset()
 
-    }
-    //draw controler
-    controlerImg = new Image()
-    controlerImg.src = './controler.svg'
-    controlerImg.onload = function () {
-        ctx.drawImage(controlerImg, controler.x, controler.y, controler.width, controler.height)
-    }
     requestAnimationFrame(update)
 }
