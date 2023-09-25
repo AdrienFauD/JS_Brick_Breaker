@@ -2,10 +2,12 @@ document.addEventListener("keydown", keyDownHandler, false)
 document.addEventListener("keyup", keyUpHandler, false)
 document.addEventListener("mousemove", mouseMoveHandler, false)
 
+
 // board 
 let canvas;
 let canvasWidth = 300;
 let canvasHeight = 300;
+let canvasBackgroundImg;
 let ctx;
 // controler
 let controlerWidth = 50
@@ -24,7 +26,6 @@ let ballY = controlerY - controlerHeight
 let ballImg
 let ballVelocityX = 2
 let ballVelocityY = -2
-
 let ball = {}
 let score = 0
 //bricks
@@ -38,10 +39,15 @@ let bricksY = 10
 let brickLeftCount = brickRows * brickColumns
 let brickImg
 const bricks = []
+//gameover text
+let gameOverFontSize = 50
+let gameOverTextPositionX = 20
+let gameOverTextPositionY = canvasWidth / 2
 
 // keys
-let leftPressed = false
-let rightPressed = false
+let left_pressed = false
+let right_pressed = false
+let game_over = false
 
 
 
@@ -59,7 +65,7 @@ function reset() {
     // ball
     ballImg = new Image()
     ballImg.src = './ball.svg'
-    ballVelocityX = 2 + score
+    ballVelocityX = (2+score)*(Math.random() < 0.5 ? -1 : 1) 
     ballVelocityY = -2 - score
 
     ball = {
@@ -74,8 +80,9 @@ function reset() {
     brickImg.src = './brick.svg'
 
     // keys
-    leftPressed = false
-    rightPressed = false
+    left_pressed = false
+    right_pressed = false
+    game_over = false
 
     for (let c = 0; c < brickColumns; c++) {
         bricks[c] = []
@@ -89,18 +96,20 @@ function reset() {
 
 
 function keyDownHandler(e) {
-    if (e.key == "Left" || e.key == 'ArrowLeft') { leftPressed = true }
-    else if (e.key == "Right" || e.key == 'ArrowRight') { rightPressed = true }
+    if (e.key == "Left" || e.key == 'ArrowLeft') { left_pressed = true }
+    else if (e.key == "Right" || e.key == 'ArrowRight') { right_pressed = true }
 }
 function keyUpHandler(e) {
-    if (e.key == "Left" || e.key == 'ArrowLeft') { leftPressed = false }
-    else if (e.key == "Right" || e.key == 'ArrowRight') { rightPressed = false }
-        
+    if (e.key == "Left" || e.key == 'ArrowLeft') { left_pressed = false }
+    else if (e.key == "Right" || e.key == 'ArrowRight') { right_pressed = false }
+
 }
 function mouseMoveHandler(e) {
+    let canvasPosition = canvas.getBoundingClientRect()
+    let canvasPositionX = canvasPosition.x
     let mousePosition = e.clientX
-    if (e.clientX > 0 && mousePosition < canvasWidth) {
-        controler.x = mousePosition - controler.width / 2
+    if (mousePosition > canvasPositionX && mousePosition < canvasWidth + canvasPositionX) {
+        controler.x = mousePosition - controler.width / 2 - canvasPositionX
     }
 }
 
@@ -121,7 +130,7 @@ function drawBricks() {
                 bricks[c][r].x = brickX
                 bricks[c][r].y = brickY
                 ctx.beginPath()
-                ctx.rect(brickX, brickY, bricksWidth, bricksHeight)
+                ctx.drawImage(brickImg, brickX, brickY, bricksWidth, bricksHeight)
                 ctx.fillStyle = "#0095DD";
                 ctx.fill();
                 ctx.closePath();
@@ -133,7 +142,6 @@ function drawBricks() {
 function ballMovement() {
     if (ball.x > canvasWidth - ball.width || ball.x < 0) ballVelocityX = -ballVelocityX
     if (ball.y < 0 || ball.y > canvasHeight) ballVelocityY = -ballVelocityY
-    if (ball.y > canvasHeight || brickLeftCount === 0) gameOver()
     ball.x += ballVelocityX
     ball.y += ballVelocityY
 }
@@ -173,24 +181,50 @@ function collisionDetection() {
 
 function gameOver() {
 
-    if (brickLeftCount === 0) alert("You win")
-    else { alert("You loose") }
+    if (brickLeftCount === 0) {
+        ctx.font = gameOverFontSize + "px serif";
+        ctx.fillText("You win !", gameOverTextPositionX, gameOverTextPositionY);
+    } else {
+        ctx.font = gameOverFontSize + "px serif";
+        ctx.fillText("You loose ! ", gameOverTextPositionX, gameOverTextPositionY);
+    }
     ball = {
         x: ballX,
         y: ballY
     }
     ballVelocityY = Math.abs(ballVelocityY)
     score++
-    reset()
+    game_over = true
+    
+}
+function restart(e) {
+    if(!game_over) return
+    let canvasPosition = canvas.getBoundingClientRect()
+    let canvasPositionX = canvasPosition.x
+    let canvasPositionY = canvasPosition.y
+    let mousePositionX = e.clientX
+    let mousePositionY = e.clientY
+    if (mousePositionX > canvasPositionX + gameOverTextPositionX && mousePositionX < canvasPositionX + canvasWidth - 20
+        && mousePositionY > canvasPositionY + gameOverTextPositionY - gameOverFontSize && mousePositionY < canvasPositionY + gameOverTextPositionY) {
+            reset()
+    }
 }
 
-function update() {
+
+
+function update(e) {
     requestAnimationFrame(update)
+    if (game_over) {
+        document.addEventListener("mouseup", restart, false)
+        restart(e)
+        document.removeEventListener("mouseup", restart, true)
+        return
+    }
     ctx.clearRect(0, 0, canvasWidth, canvasHeight)
-    if (rightPressed && controler.x < canvasWidth - controler.width) {
+    if (right_pressed && controler.x < canvasWidth - controler.width) {
         controler.x += 7;
     }
-    else if (leftPressed && controler.x > 0) {
+    else if (left_pressed && controler.x > 0) {
         controler.x -= 7;
     }
     collisionDetection()
@@ -198,11 +232,16 @@ function update() {
     drawBall()
     drawControler()
     ballMovement()
+    if (ball.y > canvasHeight || brickLeftCount === 0) gameOver()
+
 }
 
 
 window.onload = function () {
-    canvas = document.getElementById("board")
+    canvas = document.querySelector("#board")
+    canvasBackgroundImg = new Image()
+    canvasBackgroundImg.src = './background.svg'
+    canvas.src = './background.svg'
     canvas.width = canvasWidth
     canvas.height = canvasHeight
     ctx = canvas.getContext('2d')
